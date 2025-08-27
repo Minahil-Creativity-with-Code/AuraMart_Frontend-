@@ -1,0 +1,7 @@
+[
+  { "status": "Pending", "count": 45 },
+  { "status": "Shipped", "count": 80 },
+  { "status": "Delivered", "count": 210 },
+  { "status": "Cancelled", "count": 20 },
+    { "status": "Processing", "count": 20 }
+]
