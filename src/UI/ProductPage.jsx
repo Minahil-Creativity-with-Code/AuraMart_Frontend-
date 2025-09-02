@@ -11,7 +11,7 @@ const ProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  
+
   const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
@@ -28,7 +28,7 @@ const ProductPage = () => {
       setLoading(true);
       const response = await axios.get(`http://localhost:5000/api/products/${id}`);
       setProduct(response.data);
-      
+
       // Set default selections
       if (response.data.attributes?.sizes?.length > 0) {
         setSelectedSize(response.data.attributes.sizes[0]);
@@ -100,12 +100,12 @@ const ProductPage = () => {
 
   const getPriceDisplay = () => {
     if (!product) return null;
-    
+
     const prices = product.prices;
     const availableSizes = Object.keys(prices).filter(size => prices[size]);
-    
+
     if (availableSizes.length === 0) return <span className="no-price">Price not available</span>;
-    
+
     if (availableSizes.length === 1) {
       const size = availableSizes[0];
       return (
@@ -115,7 +115,7 @@ const ProductPage = () => {
         </div>
       );
     }
-    
+
     return (
       <div className="price-range">
         <span className="price-label">Starting from:</span>
@@ -153,12 +153,12 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className = "detail-page">
-        <div className = "detail-container">
-          <div className = "detail-images">
+      <div className="detail-page">
+        <div className="detail-container">
+          <div className="detail-images">
             <div className="main-image">
-              <img 
-                src={`http://localhost:5000/images/${product.image}`} 
+              <img
+                src={`http://localhost:5000/images/${product.image}`}
                 alt={product.name}
                 onError={(e) => {
                   e.target.src = 'http://localhost:5000/images/default.jpg';
@@ -167,10 +167,10 @@ const ProductPage = () => {
             </div>
           </div>
 
-          <div className = "detail-details">
-            <div className = "detail-header">
-              <h1 className = "detail-title">{product.name}</h1>
-              <div className = "detail-rating">
+          <div className="detail-details">
+            <div className="detail-header">
+              <h1 className="detail-title">{product.name}</h1>
+              <div className="detail-rating">
                 <FaStar className="star filled" />
                 <FaStar className="star filled" />
                 <FaStar className="star filled" />
@@ -180,7 +180,7 @@ const ProductPage = () => {
               </div>
             </div>
 
-            <div className = "detail-price">
+            <div className="detail-price">
               {getPriceDisplay()}
               {selectedSize && (
                 <div className="selected-price">
@@ -189,11 +189,11 @@ const ProductPage = () => {
               )}
             </div>
 
-            <div className = "detail-description">
+            <div className="detail-description">
               <p>{product.description}</p>
             </div>
 
-            <div className = "detail-options">
+            <div className="detail-options">
               {product.attributes?.colors && product.attributes.colors.length > 0 && (
                 <div className="option-group">
                   <label>Color:</label>
@@ -212,6 +212,7 @@ const ProductPage = () => {
                   </div>
                 </div>
               )}
+
 
               {product.attributes?.sizes && product.attributes.sizes.length > 0 && (
                 <div className="option-group">
@@ -238,7 +239,7 @@ const ProductPage = () => {
               <div className="option-group">
                 <label>Quantity:</label>
                 <div className="quantity-selector">
-                  <button 
+                  <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
                     className="qty-btn"
@@ -246,7 +247,7 @@ const ProductPage = () => {
                     -
                   </button>
                   <span className="quantity">{quantity}</span>
-                  <button 
+                  <button
                     onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
                     disabled={quantity >= product.stockQuantity}
                     className="qty-btn"
@@ -257,9 +258,23 @@ const ProductPage = () => {
                 <span className="stock-info">Available: {product.stockQuantity}</span>
               </div>
             </div>
+            {/* For Additional Attributes */}
 
-            <div className = "detail-actions">
-              <button 
+            {product.additionalAttributes && Object.keys(product.additionalAttributes).length > 0 && (
+              <div className="additional-attributes">
+                <h3>Additional Attributes</h3>
+                <ul>
+                  {Object.entries(product.additionalAttributes).map(([key, values]) => (
+                    <li key={key}>
+                      <strong>{key.replace(/_/g, ' ')}:</strong> {values.join(', ')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="detail-actions">
+              <button
                 className="add-to-cart-btn"
                 onClick={handleAddToCart}
                 disabled={!selectedSize}
@@ -267,7 +282,7 @@ const ProductPage = () => {
                 <FaShoppingCart />
                 Add to Cart
               </button>
-              <button 
+              <button
                 className="buy-now-btn"
                 onClick={handleBuyNow}
                 disabled={!selectedSize}
@@ -276,7 +291,7 @@ const ProductPage = () => {
               </button>
             </div>
 
-            <div className = "detail-features">
+            <div className="detail-features">
               <div className="feature">
                 <MdLocationOn />
                 <span>Free delivery on orders above Rs 2000</span>
@@ -294,14 +309,14 @@ const ProductPage = () => {
                 <span>Easy returns within 7 days</span>
               </div>
             </div>
-            
+
           </div>
         </div>
       </div>
 
     </Layout>
   );
-  
+
 };
 
 export default ProductPage;

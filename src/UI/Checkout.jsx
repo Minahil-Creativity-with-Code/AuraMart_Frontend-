@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
-import { FaArrowLeft, FaTruck, FaCheckCircle } from 'react-icons/fa';
+import { FaArrowLeft, FaTruck, FaCheckCircle, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import StripePayment from './StripePayment';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ const Checkout = () => {
     country: 'Pakistan'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
+  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
 
   // Safety check for cart
   if (!cart || !Array.isArray(cart)) {
@@ -35,17 +39,18 @@ const Checkout = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="checkout-container">
-        <div className="checkout-content empty-cart">
-          <FaCheckCircle className="checkout-icon" />
+      <div className="emptycart-container">
+        <div className="emptycart-box">
+          <FaCheckCircle className="emptycart-icon" />
           <h2>Your cart is empty</h2>
           <p>Please add some products to your cart before checkout.</p>
-          <button onClick={() => navigate('/shop')} className="continue-shopping-btn">
+          <button onClick={() => navigate('/shop')} className="emptycart-btn">
             <FaArrowLeft />
             Continue Shopping
           </button>
         </div>
       </div>
+
     );
   }
 
@@ -58,7 +63,12 @@ const Checkout = () => {
     }));
   };
 
-  // Submit order
+  // Handle payment method change
+  const handlePaymentMethodChange = (method) => {
+    setPaymentMethod(method);
+  };
+
+  // Submit order (for Cash on Delivery)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -78,19 +88,25 @@ const Checkout = () => {
           productId: item.id,
           quantity: item.quantity,
           price: item.price
-        }))
-        // Removed totalAmount - backend will calculate it
-        // Removed status - backend will set default 'Pending'
+        })),
+        paymentMethod: paymentMethod
       };
 
       const response = await axios.post('http://localhost:5000/api/orders/create', orderData);
 
       if (response.status === 201) {
-        toast.success('Order placed successfully!');
-        clearCart();
-        navigate('/order-success', {
-          state: { order: response.data, orderData } // FIXED
-        });
+        if (paymentMethod === 'Cash on Delivery') {
+          // For Cash on Delivery, redirect to success page immediately
+          toast.success('Order placed successfully! Pay on delivery.');
+          clearCart();
+          navigate('/order-success', {
+            state: { order: response.data, orderData }
+          });
+        } else {
+          // For Stripe, store order and show payment form
+          setCurrentOrder(response.data);
+          setOrderPlaced(true);
+        }
       }
     } catch (error) {
       console.error('Error placing order:', error);
@@ -102,9 +118,60 @@ const Checkout = () => {
     }
   };
 
+  // Handle successful Stripe payment
+  const handlePaymentSuccess = (order) => {
+    toast.success('Payment successful! Order confirmed.');
+    clearCart();
+    navigate('/order-success', {
+      state: { order: order, orderData: { ...formData, paymentMethod: 'Stripe' } }
+    });
+  };
+
+  // Handle payment error
+  const handlePaymentError = (error) => {
+    console.error('Payment error:', error);
+    // Order is already placed, just payment failed
+    // User can retry payment or contact support
+  };
+
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const shipping = subtotal > 2000 ? 0 : 200;
   const total = subtotal + shipping;
+
+  // If order is placed and payment method is Stripe, show payment form
+  if (orderPlaced && paymentMethod === 'Stripe' && currentOrder) {
+    return (
+      <div className="payment-container">
+        <div className="payment-box">
+          <div className="payment-header">
+            <button onClick={() => setOrderPlaced(false)} className="back-btn">
+              <FaArrowLeft />
+              Back to Checkout
+            </button>
+
+            <h1>Complete Payment</h1>
+          </div>
+
+          <div className="payment-content">
+            <h2>Order Summary</h2>
+            <div className="payment-summary">
+              <p><strong>Order ID:</strong> {currentOrder._id}</p>
+              <p><strong>Total Amount:</strong> Rs {total.toFixed(2)} PKR</p>
+            </div>
+
+            <h2>Payment Details</h2>
+            <StripePayment
+              amount={total}
+              onPaymentSuccess={handlePaymentSuccess}
+              onPaymentError={handlePaymentError}
+              orderId={currentOrder._id}
+            />
+          </div>
+        </div>
+      </div>
+
+    );
+  }
 
   return (
     <div className="checkout-container">
@@ -114,7 +181,7 @@ const Checkout = () => {
             <FaArrowLeft />
             Back to Cart
           </button>
-          <h1 className='heading-checkout'>Checkout</h1>
+          <h1>Checkout</h1>
         </div>
 
         <div className="checkout-grid">
@@ -149,8 +216,6 @@ const Checkout = () => {
                 required
               />
 
-
-
               <label>Address *</label>
               <input
                 type="text"
@@ -161,10 +226,41 @@ const Checkout = () => {
                 required
               />
 
+              {/* Payment Method Selection */}
+              <div className="payment-method-section">
+                <h3>Payment Method</h3>
+                <div className="payment-options">
+                  <label className={`payment-option ${paymentMethod === 'Cash on Delivery' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Cash on Delivery"
+                      checked={paymentMethod === 'Cash on Delivery'}
+                      onChange={() => handlePaymentMethodChange('Cash on Delivery')}
+                    />
+                    <FaMoneyBillWave className="payment-icon" />
+                    <span>Cash on Delivery</span>
+                  </label>
 
+                  <label className={`payment-option ${paymentMethod === 'Stripe' ? 'selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="Stripe"
+                      checked={paymentMethod === 'Stripe'}
+                      onChange={() => handlePaymentMethodChange('Stripe')}
+                    />
+                    <FaCreditCard className="payment-icon" />
+                    <span>Credit/Debit Card</span>
+                  </label>
+                </div>
+              </div>
 
               <button type="submit" className="place-order-btn" disabled={isSubmitting}>
-                {isSubmitting ? 'Placing Order...' : 'Place Order'}
+                {isSubmitting ? 'Placing Order...' :
+                  paymentMethod === 'Cash on Delivery' ? 'Place Order (Cash on Delivery)' :
+                    'Place Order & Proceed to Payment'
+                }
               </button>
             </form>
           </div>
@@ -210,6 +306,24 @@ const Checkout = () => {
             <div className="shipping-info">
               <FaTruck />
               <span>Free shipping on orders above Rs 2000</span>
+            </div>
+
+            {/* Payment Method Info */}
+            <div className="payment-info">
+              <h4>Selected Payment Method:</h4>
+              <div className="selected-payment">
+                {paymentMethod === 'Cash on Delivery' ? (
+                  <>
+                    <FaMoneyBillWave />
+                    <span>Cash on Delivery - Pay when you receive your order</span>
+                  </>
+                ) : (
+                  <>
+                    <FaCreditCard />
+                    <span>Credit/Debit Card - Secure payment via Stripe</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

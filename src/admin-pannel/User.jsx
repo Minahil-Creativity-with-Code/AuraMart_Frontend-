@@ -106,7 +106,7 @@ const AdminUserPanel = () => {
               <FaUserFriends /> Customers
             </Link>
             <Link to="/user" className="active">
-              <FaRegUser /> Users
+              <FaRegUser /> User
             </Link>
           </ul>
         </nav>

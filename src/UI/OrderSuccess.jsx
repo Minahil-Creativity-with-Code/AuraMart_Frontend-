@@ -9,7 +9,7 @@ const OrderSuccess = () => {
       <div className="order-success-container">
         <div className="order-success-content">
           <div className="success-icon">
-            <FaCheckCircle size={80} />
+            <FaCheckCircle size={80}  color='#ff9100'/>
           </div>
           
           <h1>Order Placed Successfully!</h1>
@@ -30,7 +30,7 @@ const OrderSuccess = () => {
           </div>
 
           <div className="success-actions">
-            <Link to="/" className="continue-shopping-btn">
+            <Link to="/" className="continue-shopping-btn-order">
               <FaHome /> Continue Shopping
             </Link>
             <Link to="/shop" className="browse-more-btn">

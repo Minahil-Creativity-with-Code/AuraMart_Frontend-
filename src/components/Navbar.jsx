@@ -5,13 +5,7 @@ import { useCart } from '../context/CartContext';
 
 const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
   const { getCartCount, getCartTotal } = useCart();
-
-  // toggle dropdown for mobile
-  const handleDropdownToggle = (menu) => {
-    setOpenDropdown(openDropdown === menu ? null : menu);
-  };
 
   return (
     <div className="grace-navbar">
@@ -29,75 +23,77 @@ const Navbar = () => {
       {/* Navbar Links */}
       <ul className={`nav-links ${menuOpen ? 'show' : ''}`}>
         <li>
-          <NavLink to="/shop" className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}>
+          <NavLink
+            to="/shop"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
+          >
             Shop
           </NavLink>
         </li>
-
-        {/* Summer Collection */}
         <li>
-          <div
-            className="nav-parent"
-            onClick={() => handleDropdownToggle('summer')}
+          <NavLink
+            to="/category/summer"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
           >
-            <span className="nav-route">Summer Collection ▾</span>
-          </div>
-          <div className={`dropdown ${openDropdown === 'summer' ? 'open' : ''}`}>
+            Summer Collection  ▾
+          </NavLink>
+          <div className="dropdown">
             <NavLink to="/category/lawn">Lawn</NavLink>
-            <NavLink to="/category/embroidered-lawn">Embroidered</NavLink>
+            <NavLink to="/category/embroidered-lawn">Embroidered </NavLink>
           </div>
         </li>
 
-        {/* Winter Collection */}
         <li>
-          <div
-            className="nav-parent"
-            onClick={() => handleDropdownToggle('winter')}
+          <NavLink
+            to="/category/winter"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
           >
-            <span className="nav-route">Winter Collection ▾</span>
-          </div>
-          <div className={`dropdown ${openDropdown === 'winter' ? 'open' : ''}`}>
+            Winter Collection  ▾
+          </NavLink>
+          <div className="dropdown">
             <NavLink to="/category/linen">Linen</NavLink>
             <NavLink to="/category/silk">Silk</NavLink>
           </div>
         </li>
 
         <li>
-          <NavLink to="/category/gents" className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}>
+          <NavLink
+            to="/category/gents"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
+          >
             Gents
           </NavLink>
         </li>
-
-        <li>
-          <NavLink to="/category/featured" className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}>
+         <li>
+          <NavLink
+            to="/category/featured"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
+          >
             Featured
           </NavLink>
         </li>
-
-        {/* Party Wear */}
         <li>
-          <div
-            className="nav-parent"
-            onClick={() => handleDropdownToggle('party')}
+          <NavLink
+            to="/category/party"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
           >
-            <span className="nav-route">Party Wear ▾</span>
-          </div>
-          <div className={`dropdown ${openDropdown === 'party' ? 'open' : ''}`}>
+            Party Wear ▾
+          </NavLink>
+          <div className="dropdown">
             <NavLink to="/category/clutch-bag">Clutch Bag</NavLink>
             <NavLink to="/category/silk">Silk</NavLink>
             <NavLink to="/category/organza">Organza</NavLink>
           </div>
         </li>
 
-        {/* Home Decor */}
         <li>
-          <div
-            className="nav-parent"
-            onClick={() => handleDropdownToggle('home')}
+          <NavLink
+            to="/category/home-decor"
+            className={({ isActive }) => isActive ? 'nav-route active' : 'nav-route'}
           >
-            <span className="nav-route">Home Decor ▾</span>
-          </div>
-          <div className={`dropdown ${openDropdown === 'home' ? 'open' : ''}`}>
+            Home Decor ▾
+          </NavLink>
+          <div className="dropdown">
             <NavLink to="/category/bedding">Bedding</NavLink>
             <NavLink to="/category/mattress-covers">Mattress Covers</NavLink>
             <NavLink to="/category/sofa-covers">Sofa Covers</NavLink>
