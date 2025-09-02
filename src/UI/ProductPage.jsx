@@ -11,13 +11,15 @@ const ProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-
+  
   const [product, setProduct] = useState(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [colorToProductMap, setColorToProductMap] = useState({});
+  const [availableColors, setAvailableColors] = useState([]);
 
   useEffect(() => {
     fetchProduct();
@@ -28,7 +30,7 @@ const ProductPage = () => {
       setLoading(true);
       const response = await axios.get(`http://localhost:5000/api/products/${id}`);
       setProduct(response.data);
-
+      
       // Set default selections
       if (response.data.attributes?.sizes?.length > 0) {
         setSelectedSize(response.data.attributes.sizes[0]);
@@ -36,12 +38,66 @@ const ProductPage = () => {
       if (response.data.attributes?.colors?.length > 0) {
         setSelectedColor(response.data.attributes.colors[0]);
       }
+
+      // Fetch color variants if product has colors
+      if (response.data.attributes?.colors?.length > 0) {
+        await fetchColorVariants(response.data.name);
+      }
     } catch (error) {
       console.error('Error fetching product:', error);
       setError('Product not found');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchColorVariants = async (productName) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/products/variants/${encodeURIComponent(productName)}`);
+      setColorToProductMap(response.data.colorToProductMap);
+      setAvailableColors(Object.keys(response.data.colorToProductMap));
+    } catch (error) {
+      console.error('Error fetching color variants:', error);
+      // If no variants found, just use the current product's colors
+      if (product?.attributes?.colors) {
+        setAvailableColors(product.attributes.colors);
+      }
+    }
+  };
+
+  const handleColorVariantClick = async (color) => {
+    try {
+      // Find the product variant for this color
+      if (colorToProductMap[color] && colorToProductMap[color].length > 0) {
+        const variant = colorToProductMap[color][0]; // Get first variant of this color
+        
+        // Navigate to the variant product page
+        navigate(`/product/${variant._id}`);
+        
+        // Update the selected color
+        setSelectedColor(color);
+      }
+    } catch (error) {
+      console.error('Error switching to color variant:', error);
+      toast.error('Error switching to selected color variant');
+    }
+  };
+
+  const isColorVariant = (color) => {
+    // Check if this color exists in variants and if it's a different product
+    if (colorToProductMap[color] && colorToProductMap[color].length > 0) {
+      // Check if any variant of this color has a different ID than current product
+      return colorToProductMap[color].some(variant => variant._id !== product?._id);
+    }
+    return false;
+  };
+
+  const getVariantForColor = (color) => {
+    if (colorToProductMap[color] && colorToProductMap[color].length > 0) {
+      // Find a variant that's different from current product
+      return colorToProductMap[color].find(variant => variant._id !== product?._id);
+    }
+    return null;
   };
 
   const handleAddToCart = () => {
@@ -100,12 +156,12 @@ const ProductPage = () => {
 
   const getPriceDisplay = () => {
     if (!product) return null;
-
+    
     const prices = product.prices;
     const availableSizes = Object.keys(prices).filter(size => prices[size]);
-
+    
     if (availableSizes.length === 0) return <span className="no-price">Price not available</span>;
-
+    
     if (availableSizes.length === 1) {
       const size = availableSizes[0];
       return (
@@ -115,7 +171,7 @@ const ProductPage = () => {
         </div>
       );
     }
-
+    
     return (
       <div className="price-range">
         <span className="price-label">Starting from:</span>
@@ -153,12 +209,12 @@ const ProductPage = () => {
 
   return (
     <Layout>
-      <div className="detail-page">
-        <div className="detail-container">
-          <div className="detail-images">
+      <div className = "detail-page">
+        <div className = "detail-container">
+          <div className = "detail-images">
             <div className="main-image">
-              <img
-                src={`http://localhost:5000/images/${product.image}`}
+              <img 
+                src={`http://localhost:5000/images/${product.image}`} 
                 alt={product.name}
                 onError={(e) => {
                   e.target.src = 'http://localhost:5000/images/default.jpg';
@@ -167,10 +223,10 @@ const ProductPage = () => {
             </div>
           </div>
 
-          <div className="detail-details">
-            <div className="detail-header">
-              <h1 className="detail-title">{product.name}</h1>
-              <div className="detail-rating">
+          <div className = "detail-details">
+            <div className = "detail-header">
+              <h1 className = "detail-title">{product.name}</h1>
+              <div className = "detail-rating">
                 <FaStar className="star filled" />
                 <FaStar className="star filled" />
                 <FaStar className="star filled" />
@@ -180,7 +236,7 @@ const ProductPage = () => {
               </div>
             </div>
 
-            <div className="detail-price">
+            <div className = "detail-price">
               {getPriceDisplay()}
               {selectedSize && (
                 <div className="selected-price">
@@ -189,30 +245,47 @@ const ProductPage = () => {
               )}
             </div>
 
-            <div className="detail-description">
+            <div className = "detail-description">
               <p>{product.description}</p>
             </div>
 
-            <div className="detail-options">
-              {product.attributes?.colors && product.attributes.colors.length > 0 && (
+            <div className = "detail-options">
+              {availableColors && availableColors.length > 0 && (
                 <div className="option-group">
-                  <label>Color:</label>
+                  <label>Available Colors:</label>
                   <div className="color-options">
-                    {product.attributes.colors.map((color) => (
-                      <button
-                        key={color}
-                        className={`color-option ${selectedColor === color ? 'selected' : ''}`}
-                        onClick={() => setSelectedColor(color)}
-                        style={{ backgroundColor: color.toLowerCase() }}
-                        title={color}
-                      >
-                        {color}
-                      </button>
-                    ))}
+                    {availableColors.map((color) => {
+                      const isVariant = isColorVariant(color);
+                      const variant = getVariantForColor(color);
+                      const isCurrentProductColor = product?.attributes?.colors?.includes(color);
+                      
+                      return (
+                        <button
+                          key={color}
+                          className={`color-option ${selectedColor === color ? 'selected' : ''} ${isVariant ? 'variant' : ''}`}
+                          onClick={() => {
+                            if (isVariant && variant) {
+                              handleColorVariantClick(color);
+                            } else {
+                              setSelectedColor(color);
+                            }
+                          }}
+                          style={{ backgroundColor: color.toLowerCase() }}
+                          title={`${color}${isVariant ? ' - Click to view variant' : ' - Current product color'}`}
+                        >
+                          {color}
+                          {isVariant && variant && (
+                            <span className="variant-indicator">→</span>
+                          )}
+                          {!isVariant && isCurrentProductColor && (
+                            <span className="current-indicator">✓</span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
-
 
               {product.attributes?.sizes && product.attributes.sizes.length > 0 && (
                 <div className="option-group">
@@ -247,7 +320,7 @@ const ProductPage = () => {
                     -
                   </button>
                   <span className="quantity">{quantity}</span>
-                  <button
+                  <button 
                     onClick={() => setQuantity(Math.min(product.stockQuantity, quantity + 1))}
                     disabled={quantity >= product.stockQuantity}
                     className="qty-btn"
@@ -273,8 +346,8 @@ const ProductPage = () => {
               </div>
             )}
 
-            <div className="detail-actions">
-              <button
+            <div className = "detail-actions">
+              <button 
                 className="add-to-cart-btn"
                 onClick={handleAddToCart}
                 disabled={!selectedSize}
@@ -282,7 +355,7 @@ const ProductPage = () => {
                 <FaShoppingCart />
                 Add to Cart
               </button>
-              <button
+              <button 
                 className="buy-now-btn"
                 onClick={handleBuyNow}
                 disabled={!selectedSize}
@@ -291,7 +364,7 @@ const ProductPage = () => {
               </button>
             </div>
 
-            <div className="detail-features">
+            <div className = "detail-features">
               <div className="feature">
                 <MdLocationOn />
                 <span>Free delivery on orders above Rs 2000</span>
@@ -310,13 +383,28 @@ const ProductPage = () => {
               </div>
             </div>
 
+            {product.attributes?.brand && (
+              <div className = "detail-info">
+                <strong>Brand:</strong> {product.attributes.brand}
+              </div>
+            )}
+            
+            {product.attributes?.material && (
+              <div className = "detail-info">
+                <strong>Material:</strong> {product.attributes.material}
+              </div>
+            )}
+
+            <div className = "detail-info">
+              <strong>Categories:</strong> {product.categories?.join(', ')}
+            </div>
           </div>
         </div>
       </div>
 
     </Layout>
   );
-
+  
 };
 
 export default ProductPage;

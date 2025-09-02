@@ -16,12 +16,11 @@ const ProfilePage = () => {
     navigate("/"); // Go to home after logout
   };
 
-  // ✅ Image handling (same as your product approach)
   const getUserImage = () => {
     if (user?.image && user.image.trim() !== "") {
       return user.image.startsWith("http")
         ? user.image
-        : `http://localhost:5000/images/${user.image || "default.jpg"}`;
+        : `http://localhost:5000/images/${user.image}`;
     }
     return defaultImage;
   };
@@ -41,22 +40,20 @@ const ProfilePage = () => {
         <div className="profile-image">
           <img
             src={getUserImage()}
-            alt={user.name || "User"}
-            onError={(e) => {
-              e.target.src = defaultImage; // fallback if image not found
-            }}
+            alt={user?.name || "User"}
+            onError={(e) => (e.target.src = defaultImage)}
           />
         </div>
         <div className="profile-details">
-          <h2>{user.name}</h2>
+          <h2>{user?.name}</h2>
           <p>
-            <strong>Profession:</strong> {user.profession || "Not provided"}
+            <strong>Profession:</strong> {user?.profession || "Not provided"}
           </p>
           <p>
-            <strong>Gender:</strong> {user.gender || "Not provided"}
+            <strong>Gender:</strong> {user?.gender || "Not provided"}
           </p>
           <p>
-            <strong>Email:</strong> {user.email}
+            <strong>Email:</strong> {user?.email}
           </p>
 
           <button onClick={handleLogout} className="logout" title="Logout">

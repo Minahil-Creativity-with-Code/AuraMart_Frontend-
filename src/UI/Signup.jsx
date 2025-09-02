@@ -12,31 +12,44 @@ const Signup = () => {
   const [success, setSuccess] = useState('');
   const [formData, setFormData] = useState({
     profileImage: null,
-    role: 'user'
+    role: 'user',
+    gender: 'male',
   });
 
-  // Handle file and select input changes
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === 'profileImage') {
       setFormData((prev) => ({
         ...prev,
-        profileImage: files[0]
+        profileImage: files[0],
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
 
-  // Submit form
+  const validatePassword = (password) => {
+    const regex =
+      /^(?=.*[A-Z])(?=(?:.*[a-z]){8,})(?=.*[!@#$%^&*()_+={};':"\\|,.<>/?-]).+$/;
+    return regex.test(password);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!username || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
+      setSuccess('');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError(
+        'Password must contain at least 1 uppercase letter, 8 lowercase letters, and 1 special character.'
+      );
       setSuccess('');
       return;
     }
@@ -56,23 +69,19 @@ const Signup = () => {
     try {
       const data = {
         name: username,
-        email: email,
-        password: password,
-        role: formData.role
-        // Note: Image upload not supported in current register route
-        // Profile image can be updated later
+        email,
+        password,
+        role: formData.role,
+        gender: formData.gender,
       };
 
       await axios.post('http://localhost:5000/api/users/register', data, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       setError('');
-      setSuccess(`Welcome, ${username}! Your account has been created. Please check your email for verification.`);
+      setSuccess(`Welcome, ${username}! Your account has been created.`);
 
-      // Clear fields
       setUsername('');
       setEmail('');
       setPassword('');
@@ -80,7 +89,8 @@ const Signup = () => {
       setAgree(false);
       setFormData({
         profileImage: null,
-        role: 'user'
+        role: 'user',
+        gender: 'male',
       });
     } catch (err) {
       const message =
@@ -91,93 +101,98 @@ const Signup = () => {
   };
 
   return (
-    <div className="signup-page">
-      <div className="container">
-        <h1>Sign Up</h1>
+    <div className="gs-signup-wrapper">
+      <div className="gs-signup-card">
+        <h1 className="gs-signup-title">Create Account</h1>
 
-        {error && <div className="error">{error}</div>}
-        {success && <div className="success">{success}</div>}
+        {error && <div className="gs-signup-error">{error}</div>}
+        {success && <div className="gs-signup-success">{success}</div>}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form">
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
+        <form onSubmit={handleSubmit} className="gs-signup-form">
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="gs-input"
+          />
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="gs-input"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="gs-input"
+          />
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="gs-input"
+          />
 
-            {/* Role dropdown */}
-             <div className="upload-section-signup">
-              <label className='label-gender'>Gender</label>
-              <select name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            {/* Profile photo upload */}
-            <div className="upload-section-signup">
-              <label className='label-signup'>Profile Photo</label>
-              <input
-                type="file"
-                name="profileImage"
-                accept="image/*"
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Image preview */}
-            {formData.profileImage && (
-              <img
-                src={URL.createObjectURL(formData.profileImage)}
-                alt="Preview"
-                style={{
-                  width: '150px',
-                  marginTop: '10px',
-                  borderRadius: '8px',
-                  objectFit: 'cover',
-                }}
-              />
-            )}
+          <div className="gs-form-section">
+            <label className="gs-label">Gender</label>
+            <select
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              className="gs-select"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
-          <br />
-          <div className="password">
+          <div className="gs-form-section">
+            <label className="gs-label">Profile Photo</label>
+            <input
+              type="file"
+              name="profileImage"
+              accept="image/*"
+              onChange={handleChange}
+              className="gs-file"
+            />
+          </div>
+
+          {formData.profileImage && (
+            <img
+              src={URL.createObjectURL(formData.profileImage)}
+              alt="Preview"
+              className="gs-preview-img"
+            />
+          )}
+
+          <div className="gs-terms">
             <label>
               <input
                 type="checkbox"
                 checked={agree}
                 onChange={() => setAgree(!agree)}
               />
-              <span className="rem">I agree to the terms & conditions</span>
+              <span className="gs-terms-text">
+                I agree to the terms & conditions
+              </span>
             </label>
           </div>
 
-          <button type="submit" className="submit">Sign Up</button>
+          <button type="submit" className="gs-submit-btn">
+            Sign Up
+          </button>
         </form>
 
-        <div className="register">
-          <span>Already have an account? <Link to="/login">Login</Link></span>
+        <div className="gs-signin-link">
+          <span>
+            Already have an account? <Link to="/login">Login</Link>
+          </span>
         </div>
       </div>
     </div>
