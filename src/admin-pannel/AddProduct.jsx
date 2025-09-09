@@ -34,6 +34,9 @@ const AddProduct = () => {
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [selectedAttributes, setSelectedAttributes] = useState({});
 
+  // NEW STATES for dropdown
+  const [chosenAttributeNames, setChosenAttributeNames] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   useEffect(() => {
     fetchCategories();
     fetchAttributes();
@@ -122,10 +125,10 @@ const AddProduct = () => {
           xlarge: product.prices?.xlarge?.toString() || ''
         },
         stock: product.stockQuantity?.toString() || '',
-        brand: '', // Will be handled by selectedAttributes
+        brand: product.attributes?.brand?.[0] || '', // Get first brand value
         colors: product.attributes?.colors || [],
         sizes: product.attributes?.sizes || [],
-        material: '', // Will be handled by selectedAttributes
+        material: product.attributes?.material?.[0] || '', // Get first material value
         productImage: null,
         image: product.image || '',
       });
@@ -144,6 +147,14 @@ const AddProduct = () => {
             otherAttributes[key] = Array.isArray(value) ? value : [value];
           }
         });
+      }
+      
+      // Also handle brand and material specifically for the input fields
+      if (product.attributes?.brand && product.attributes.brand.length > 0) {
+        otherAttributes.brand = product.attributes.brand;
+      }
+      if (product.attributes?.material && product.attributes.material.length > 0) {
+        otherAttributes.material = product.attributes.material;
       }
       
       // Load additional attributes from additionalAttributes field
@@ -170,12 +181,18 @@ const AddProduct = () => {
       
       // Map attribute keys to match the frontend format (convert spaces to underscores)
       const mappedAttributes = {};
+      const chosenAttrs = [];
       Object.entries(otherAttributes).forEach(([key, value]) => {
         const mappedKey = key.toLowerCase().replace(/\s+/g, '_');
         mappedAttributes[mappedKey] = value;
+        // Add to chosen attributes for dropdown (exclude brand and material as they have input fields)
+        if (value && value.length > 0 && key !== 'brand' && key !== 'material') {
+          chosenAttrs.push(mappedKey);
+        }
       });
       
       setSelectedAttributes(mappedAttributes);
+      setChosenAttributeNames(chosenAttrs);
     } catch (error) {
       console.error('Error fetching product:', error);
       toast.error('Product not found!');
@@ -265,7 +282,11 @@ const AddProduct = () => {
 
     // Validate that prices are set for all selected sizes
     const missingPrices = selectedSizes.filter(size => {
-      const sizeKey = size.toLowerCase();
+      let sizeKey = size.toLowerCase();
+      // Map "Extra Large" to "xlarge" for price validation
+      if (sizeKey === 'extra large') {
+        sizeKey = 'xlarge';
+      }
       return !productData.prices[sizeKey] || productData.prices[sizeKey] === '';
     });
 
@@ -305,7 +326,7 @@ const AddProduct = () => {
         attributes: {
           colors: selectedColors,
           sizes: selectedSizes,
-          brand: selectedAttributes.brand || [],
+          brand: productData.brand ? [productData.brand] : [],
           material: selectedAttributes.material || []
         },
         // Additional dynamic attributes (custom attributes)
@@ -469,39 +490,87 @@ const AddProduct = () => {
             <div></div>
           </div>
 
-          {/* Dynamic Attributes Section */}
-          {Object.entries(attributes).map(([attrName, attrValues]) => {
-            // Skip sizes since they're handled separately above
-            if (attrName === 'sizes') return null;
-            
-            return (
-              <div key={attrName} className="form-group">
-                <label>{getAttributeDisplayName(attrName)}</label>
-                <div className="multiselect-container">
-                  {attrValues.map((value) => (
-                    <label key={value} className="checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={
-                          (attrName === 'colors' && selectedColors.includes(value)) ||
-                          (selectedAttributes[attrName] && selectedAttributes[attrName].includes(value))
-                        }
-                        onChange={() => {
-                          if (attrName === 'colors') {
-                            handleColorChange(value);
-                          } else {
-                            handleAttributeChange(attrName, value);
-                          }
-                        }}
-                      />
-                      {value}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          {/* Only show Colors */}
+        {attributes.colors && (
+          <div className="form-group">
+            <label>{getAttributeDisplayName('colors')}</label>
+            <div className="multiselect-container">
+              {attributes.colors.map((color) => (
+                <label key={color} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={selectedColors.includes(color)}
+                    onChange={() => handleColorChange(color)}
+                  />
+                  {color}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
+  {/* Attribute Dropdown */}
+          <div className="form-group">
+            <label>Select Attributes to Show</label>
+            <div className="attr-dropdown-container">
+              <button
+                type="button"
+                className="attr-dropdown-btn"
+                onClick={() => setDropdownOpen(prev => !prev)}
+              >
+                Choose Attributes ▼
+              </button>
+              {dropdownOpen && (
+                <div className="attr-dropdown-list">
+                  {Object.keys(attributes).map(attrName => {
+                    if (attrName === 'sizes' || attrName === 'colors') return null;
+                    return (
+                      <label key={attrName} className="attr-checkbox-item">
+                        <input
+                          style={{
+                            width: "20px",
+                            padding: "10px",
+                            border: "1px solid #ff9100",
+                            borderRadius: "4px",
+                            fontSize: "14px"
+                          }}
+                          type="checkbox"
+                          checked={chosenAttributeNames.includes(attrName)}
+                          onChange={() => {
+                            setChosenAttributeNames(prev =>
+                              prev.includes(attrName)
+                                ? prev.filter(name => name !== attrName)
+                                : [...prev, attrName]
+                            );
+                          }}
+                        />
+                        {getAttributeDisplayName(attrName)}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Dynamic Attributes Section */}
+          {chosenAttributeNames.map(attrName => (
+            <div key={attrName} className="form-group">
+              <label>{getAttributeDisplayName(attrName)}</label>
+              <div className="multiselect-container">
+                {attributes[attrName]?.map(value => (
+                  <label key={value} className="checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={selectedAttributes[attrName]?.includes(value) || false}
+                      onChange={() => handleAttributeChange(attrName, value)}
+                    />
+                    {value}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))} 
           <textarea
             name="description"
             rows="4"

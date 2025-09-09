@@ -169,6 +169,20 @@ const AdminProductPanel = () => {
             <option value="Featured">Featured</option>
             <option value="Summer">Summer</option>
             <option value="Winter">Winter</option>
+            <option value="Lawn">Lawn</option>
+            <option value="Embroidered-lawn">Embroidered Lawn</option>
+            <option value="Linen">Linen</option>
+            <option value="Silk">Silk</option>
+            <option value="Organza">Organza</option>
+            <option value="Gents">Gents</option>
+            <option value="Party">Party</option>
+            <option value="Home-decor">Home Decor</option>
+            <option value="Bedding">Bedding</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Clutch-bag">Clutch Bag</option>
+            <option value="Mattress-covers">Mattress Covers</option>
+            <option value="Sofa-covers">Sofa Covers</option>
+            <option value="Washing-machine-covers">Washing Machine Covers</option>
           </select>
 
           {(searchTerm || selectedCategory) && (

@@ -20,6 +20,7 @@ const ProductPage = () => {
   const [error, setError] = useState(null);
   const [colorToProductMap, setColorToProductMap] = useState({});
   const [availableColors, setAvailableColors] = useState([]);
+  const [isSwitchingVariant, setIsSwitchingVariant] = useState(false);
 
   useEffect(() => {
     fetchProduct();
@@ -69,17 +70,49 @@ const ProductPage = () => {
     try {
       // Find the product variant for this color
       if (colorToProductMap[color] && colorToProductMap[color].length > 0) {
+        setIsSwitchingVariant(true);
+        
         const variant = colorToProductMap[color][0]; // Get first variant of this color
         
-        // Navigate to the variant product page
-        navigate(`/product/${variant._id}`);
+        // Small delay to show loading state
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Update the URL without page reload
+        window.history.replaceState({}, '', `/product/${variant._id}`);
+        
+        // Ensure the variant has the correct structure for the component
+        const normalizedVariant = {
+          ...variant,
+          // Ensure prices are properly structured
+          prices: variant.prices || {},
+          // Ensure attributes are properly structured
+          attributes: {
+            ...variant.attributes,
+            sizes: variant.attributes?.sizes || variant.allAttributes?.sizes || [],
+            colors: variant.attributes?.colors || variant.allAttributes?.colors || [],
+            brand: variant.attributes?.brand || variant.allAttributes?.brand || [],
+            material: variant.attributes?.material || variant.allAttributes?.material || []
+          }
+        };
+        
+        // Update the current product data smoothly
+        setProduct(normalizedVariant);
+        
         
         // Update the selected color
         setSelectedColor(color);
+        
+        // Reset size selection if the variant has different sizes
+        if (normalizedVariant.attributes?.sizes?.length > 0) {
+          setSelectedSize(normalizedVariant.attributes.sizes[0]);
+        }
+        
+        setIsSwitchingVariant(false);
       }
     } catch (error) {
       console.error('Error switching to color variant:', error);
       toast.error('Error switching to selected color variant');
+      setIsSwitchingVariant(false);
     }
   };
 
@@ -106,7 +139,18 @@ const ProductPage = () => {
       return;
     }
 
-    const price = product.prices[selectedSize.toLowerCase()];
+    // Map size names to price keys
+    const sizeKeyMap = {
+      'Small': 'small',
+      'Medium': 'medium', 
+      'Large': 'large',
+      'Extra Large': 'xlarge',
+      'XL': 'xlarge',
+      'XXL': 'xxlarge'
+    };
+    const priceKey = sizeKeyMap[selectedSize] || selectedSize.toLowerCase().replace(/\s+/g, '');
+    const price = product.prices[priceKey];
+    
     if (!price) {
       toast.error('Price not available for selected size');
       return;
@@ -133,7 +177,18 @@ const ProductPage = () => {
       return;
     }
 
-    const price = product.prices[selectedSize.toLowerCase()];
+    // Map size names to price keys
+    const sizeKeyMap = {
+      'Small': 'small',
+      'Medium': 'medium', 
+      'Large': 'large',
+      'Extra Large': 'xlarge',
+      'XL': 'xlarge',
+      'XXL': 'xxlarge'
+    };
+    const priceKey = sizeKeyMap[selectedSize] || selectedSize.toLowerCase().replace(/\s+/g, '');
+    const price = product.prices[priceKey];
+    
     if (!price) {
       toast.error('Price not available for selected size');
       return;
@@ -182,7 +237,18 @@ const ProductPage = () => {
 
   const getSelectedPrice = () => {
     if (!selectedSize || !product) return null;
-    const price = product.prices[selectedSize.toLowerCase()];
+    
+    // Map size names to price keys
+    const sizeKeyMap = {
+      'Small': 'small',
+      'Medium': 'medium', 
+      'Large': 'large',
+      'Extra Large': 'xlarge',
+      'XL': 'xlarge',
+      'XXL': 'xxlarge'
+    };
+    const priceKey = sizeKeyMap[selectedSize] || selectedSize.toLowerCase().replace(/\s+/g, '');
+    const price = product.prices[priceKey];
     return price ? `Rs ${price} PKR` : 'Price not available';
   };
 
@@ -212,18 +278,42 @@ const ProductPage = () => {
       <div className = "detail-page">
         <div className = "detail-container">
           <div className = "detail-images">
-            <div className="main-image">
+            <div className="main-image" style={{ position: 'relative' }}>
               <img 
                 src={`http://localhost:5000/images/${product.image}`} 
                 alt={product.name}
                 onError={(e) => {
                   e.target.src = 'http://localhost:5000/images/default.jpg';
                 }}
+                style={{
+                  opacity: isSwitchingVariant ? 0.7 : 1,
+                  transition: 'opacity 0.3s ease-in-out'
+                }}
               />
+              {isSwitchingVariant && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  padding: '10px 20px',
+                  borderRadius: '5px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  color: '#333',
+                  zIndex: 10
+                }}>
+                  Switching variant...
+                </div>
+              )}
             </div>
           </div>
 
-          <div className = "detail-details">
+          <div className = "detail-details" style={{
+            opacity: isSwitchingVariant ? 0.8 : 1,
+            transition: 'opacity 0.3s ease-in-out'
+          }}>
             <div className = "detail-header">
               <h1 className = "detail-title">{product.name}</h1>
               <div className = "detail-rating">
@@ -270,7 +360,13 @@ const ProductPage = () => {
                               setSelectedColor(color);
                             }
                           }}
-                          style={{ backgroundColor: color.toLowerCase() }}
+                          style={{ 
+                            backgroundColor: color.toLowerCase(),
+                            opacity: isSwitchingVariant ? 0.6 : 1,
+                            transition: 'all 0.3s ease-in-out',
+                            cursor: isSwitchingVariant ? 'wait' : 'pointer'
+                          }}
+                          disabled={isSwitchingVariant}
                           title={`${color}${isVariant ? ' - Click to view variant' : ' - Current product color'}`}
                         >
                           {color}
@@ -292,7 +388,17 @@ const ProductPage = () => {
                   <label>Size:</label>
                   <div className="size-options">
                     {product.attributes.sizes.map((size) => {
-                      const price = product.prices[size.toLowerCase()];
+                      // Map size names to price keys
+                      const sizeKeyMap = {
+                        'Small': 'small',
+                        'Medium': 'medium', 
+                        'Large': 'large',
+                        'Extra Large': 'xlarge',
+                        'XL': 'xlarge',
+                        'XXL': 'xxlarge'
+                      };
+                      const priceKey = sizeKeyMap[size] || size.toLowerCase().replace(/\s+/g, '');
+                      const price = product.prices[priceKey];
                       return (
                         <button
                           key={size}
@@ -301,6 +407,30 @@ const ProductPage = () => {
                           disabled={!price}
                         >
                           <span className="size-name">{size}</span>
+                          {price && <span className="size-price">Rs {price} PKR</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* Fallback size display if attributes.sizes is not available */}
+              {(!product.attributes?.sizes || product.attributes.sizes.length === 0) && product.prices && Object.keys(product.prices).length > 0 && (
+                <div className="option-group">
+                  <label>Size:</label>
+                  <div className="size-options">
+                    {Object.keys(product.prices).map((size) => {
+                      const price = product.prices[size];
+                      const displaySize = size.charAt(0).toUpperCase() + size.slice(1);
+                      return (
+                        <button
+                          key={size}
+                          className={`size-option ${selectedSize === displaySize ? 'selected' : ''} ${!price ? 'unavailable' : ''}`}
+                          onClick={() => price && setSelectedSize(displaySize)}
+                          disabled={!price}
+                        >
+                          <span className="size-name">{displaySize}</span>
                           {price && <span className="size-price">Rs {price} PKR</span>}
                         </button>
                       );
@@ -394,10 +524,6 @@ const ProductPage = () => {
                 <strong>Material:</strong> {product.attributes.material}
               </div>
             )}
-
-            <div className = "detail-info">
-              <strong>Categories:</strong> {product.categories?.join(', ')}
-            </div>
           </div>
         </div>
       </div>

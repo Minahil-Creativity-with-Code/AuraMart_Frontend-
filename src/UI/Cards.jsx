@@ -60,7 +60,7 @@ const Card = () => {
           1024: { slidesPerView: 4 },
         }}
       >
-        {products.map((product) => (
+        {products.slice(0, 10).map((product) => (
           <SwiperSlide key={product._id}>
             <Link to={`/product/${product._id}`} className="product-card-link login-route">
               <div className="product-card">

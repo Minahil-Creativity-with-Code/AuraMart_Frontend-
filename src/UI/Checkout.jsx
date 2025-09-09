@@ -11,6 +11,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
   const { user } = useAuth();
+
   const [formData, setFormData] = useState({
     customerName: '',
     email: '',
@@ -20,6 +21,8 @@ const Checkout = () => {
     postalCode: '',
     country: 'Pakistan'
   });
+
+  const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Cash on Delivery');
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -50,7 +53,6 @@ const Checkout = () => {
           </button>
         </div>
       </div>
-
     );
   }
 
@@ -61,6 +63,36 @@ const Checkout = () => {
       ...prev,
       [name]: value
     }));
+
+    // live validation
+    if (name === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      setErrors(prev => ({
+        ...prev,
+        email: emailRegex.test(value) ? "" : "Invalid email address"
+      }));
+    }
+
+    if (name === "phone") {
+      setErrors(prev => ({
+        ...prev,
+        phone: /^\d{11}$/.test(value) ? "" : "Phone number must be 11 digits"
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.customerName) newErrors.customerName = "Name is required";
+    if (!formData.email) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Invalid email";
+
+    if (!formData.phone) newErrors.phone = "Phone number is required";
+    else if (!/^\d{11}$/.test(formData.phone)) newErrors.phone = "Phone number must be 11 digits";
+
+    if (!formData.addressLine) newErrors.addressLine = "Address is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // Handle payment method change
@@ -68,13 +100,15 @@ const Checkout = () => {
     setPaymentMethod(method);
   };
 
-  // Submit order (for Cash on Delivery)
+  // Submit order
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsSubmitting(true);
     try {
       const orderData = {
-        userId: user?._id || "64dabc1234567890ef123456", // fallback if auth not connected
+        userId: user?._id || "64dabc1234567890ef123456",
         customerName: formData.customerName,
         email: formData.email,
         phone: formData.phone,
@@ -96,29 +130,24 @@ const Checkout = () => {
 
       if (response.status === 201) {
         if (paymentMethod === 'Cash on Delivery') {
-          // For Cash on Delivery, redirect to success page immediately
           toast.success('Order placed successfully! Pay on delivery.');
           clearCart();
           navigate('/order-success', {
             state: { order: response.data, orderData }
           });
         } else {
-          // For Stripe, store order and show payment form
           setCurrentOrder(response.data);
           setOrderPlaced(true);
         }
       }
     } catch (error) {
       console.error('Error placing order:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
       toast.error(`Failed to place order: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handle successful Stripe payment
   const handlePaymentSuccess = (order) => {
     toast.success('Payment successful! Order confirmed.');
     clearCart();
@@ -127,28 +156,23 @@ const Checkout = () => {
     });
   };
 
-  // Handle payment error
   const handlePaymentError = (error) => {
     console.error('Payment error:', error);
-    // Order is already placed, just payment failed
-    // User can retry payment or contact support
   };
 
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const shipping = subtotal > 2000 ? 0 : 200;
   const total = subtotal + shipping;
 
-  // If order is placed and payment method is Stripe, show payment form
+  // Stripe form after order
   if (orderPlaced && paymentMethod === 'Stripe' && currentOrder) {
     return (
       <div className="payment-container">
         <div className="payment-box">
           <div className="payment-header">
             <button onClick={() => setOrderPlaced(false)} className="back-btn">
-              <FaArrowLeft />
-              Back to Checkout
+              <FaArrowLeft /> Back to Checkout
             </button>
-
             <h1>Complete Payment</h1>
           </div>
 
@@ -169,7 +193,6 @@ const Checkout = () => {
           </div>
         </div>
       </div>
-
     );
   }
 
@@ -178,8 +201,7 @@ const Checkout = () => {
       <div className="checkout-content">
         <div className="checkout-header">
           <button onClick={() => navigate('/cart')} className="back-btn">
-            <FaArrowLeft />
-            Back to Cart
+            <FaArrowLeft /> Back to Cart
           </button>
           <h1>Checkout</h1>
         </div>
@@ -197,6 +219,7 @@ const Checkout = () => {
                 onChange={handleInputChange}
                 required
               />
+              {errors.customerName && <p className="error">{errors.customerName}</p>}
 
               <label>Email *</label>
               <input
@@ -206,6 +229,7 @@ const Checkout = () => {
                 onChange={handleInputChange}
                 required
               />
+              {errors.email && <p className="error">{errors.email}</p>}
 
               <label>Phone Number *</label>
               <input
@@ -214,7 +238,9 @@ const Checkout = () => {
                 value={formData.phone}
                 onChange={handleInputChange}
                 required
+                maxLength="11"
               />
+              {errors.phone && <p className="error">{errors.phone}</p>}
 
               <label>Address *</label>
               <input
@@ -225,6 +251,7 @@ const Checkout = () => {
                 placeholder="Street address, apartment, suite, etc."
                 required
               />
+              {errors.addressLine && <p className="error">{errors.addressLine}</p>}
 
               {/* Payment Method Selection */}
               <div className="payment-method-section">

@@ -21,11 +21,9 @@ const AddOrders = () => {
   const [orderData, setOrderData] = useState(initialState);
   const [productOptions, setProductOptions] = useState([]);
 
-  // Helper: normalize id (works for string or populated object)
   const getId = (maybeObj) =>
     typeof maybeObj === 'object' && maybeObj !== null ? String(maybeObj._id) : String(maybeObj);
-
-  // ✅ Fetch products for dropdown first
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -37,8 +35,7 @@ const AddOrders = () => {
     };
     fetchProducts();
   }, []);
-
-  // ✅ Fetch order only after products are loaded (so we can map to exact references)
+  // Fetch order when editing
   useEffect(() => {
     if (!id || productOptions.length === 0) return;
 
@@ -47,15 +44,12 @@ const AddOrders = () => {
         const res = await axios.get(`http://localhost:5000/api/orders/${id}`);
         const order = res.data;
 
-        // Map each order item to the exact product object from productOptions
         const selectedProds = order.items
           .map((item) => {
             const itemProdId = getId(item.productId);
-            // find the exact object in productOptions ( id)
-            const prod = productOptions.find((p) => String(p._id) === itemProdId);
-            return prod || null;
+            return productOptions.find((p) => String(p._id) === itemProdId) || null;
           })
-          .filter(Boolean); 
+          .filter(Boolean);
 
         setOrderData({
           customerName: order.customerName || '',
@@ -72,7 +66,6 @@ const AddOrders = () => {
         navigate('/order');
       }
     };
-
     fetchOrder();
   }, [id, productOptions, navigate]);
 
@@ -80,14 +73,11 @@ const AddOrders = () => {
     const { name, value } = e.target;
     setOrderData((prev) => ({ ...prev, [name]: value }));
   };
-
-  const handleProductSelect = (selectedList) => {
+  const handleProductSelect = (selectedList) =>
     setOrderData((prev) => ({ ...prev, selectedProducts: selectedList }));
-  };
 
-  const handleProductRemove = (selectedList) => {
+  const handleProductRemove = (selectedList) =>
     setOrderData((prev) => ({ ...prev, selectedProducts: selectedList }));
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -141,11 +131,11 @@ const AddOrders = () => {
   };
 
   return (
-    <div className="signup-container">
-      <div className="form-box">
+    <div className="order-container">
+      <div className="order-form-box">
         <h2 className="title">{id ? 'Edit Order' : 'Add Order'}</h2>
 
-        <form className="form" onSubmit={handleSubmit}>
+        <form className="order-form" onSubmit={handleSubmit}>
           <div className="grid">
             <input
               name="customerName"
@@ -163,7 +153,6 @@ const AddOrders = () => {
               onChange={handleChange}
             />
           </div>
-
           <div className="grid">
             <input
               name="phone"
@@ -181,7 +170,6 @@ const AddOrders = () => {
               required
             />
           </div>
-
           <div className="field-group">
             <label>Select Products</label>
             <Multiselect
@@ -193,9 +181,9 @@ const AddOrders = () => {
               showCheckbox
               placeholder="Choose products"
               avoidHighlightFirstOption
+              className="order-multiselect"
             />
           </div>
-
           <div className="grid">
             <input
               name="quantity"
@@ -215,7 +203,7 @@ const AddOrders = () => {
             </select>
           </div>
 
-          <button type="submit" className="submit-btn">
+          <button type="submit" className="order-submit-btn">
             {id ? 'Update Order' : 'Add Order'}
           </button>
         </form>

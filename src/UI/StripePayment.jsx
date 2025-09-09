@@ -5,7 +5,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 // Load Stripe (you'll need to add your publishable key to .env)
-const stripePromise = loadStripe('pk_test_51S186fD6nJ7DxeT9SHGdiLJwva4XHTI0JTTU4W0cOFLY3XOyU99YcVuulhYyfySyMZ6xOdutHAWA5PXgKnvmjRWa00v632vDwt');
+const stripePromise = loadStripe('pk_test_51S3YtaDBPQe3DijksYxRwq3fclWdsQ9ZMLyG4KPVB2G0nf8ct05mAuRNVznF7GQgeNxqMw82MGnlbmibawyTvV1700gacxhdrf');
 
 const CheckoutForm = ({ amount, onPaymentSuccess, onPaymentError, orderId }) => {
   const stripe = useStripe();
